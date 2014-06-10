@@ -1,0 +1,52 @@
+apply plugin:'java'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+sourceCompatibility = 1.5
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    integrationTest {
+        java.srcDir file('src/test-integration/java')
+        resources.srcDir file('src/test-integration/resources')
+    }
+    acceptanceTest {
+        java.srcDir file('src/test-acceptance/java')
+        resources.srcDir file('src/test-acceptance/resources')
+    }
+}
+
+
+dependencies {
+    compile 'com.github.tntim96:rhino:1.7R5pre03'
+    testCompile 'net.sourceforge.htmlunit:htmlunit:2.15'
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
+    testCompile 'org.mockito:mockito-core:1.9.5'
+
+    integrationTestCompile sourceSets.main.output
+    integrationTestCompile configurations.testCompile
+    integrationTestCompile sourceSets.test.output
+    integrationTestRuntime configurations.testRuntime
+    acceptanceTestCompile sourceSets.main.output
+    acceptanceTestCompile configurations.testCompile
+    acceptanceTestCompile sourceSets.test.output
+    acceptanceTestRuntime configurations.testRuntime
+}
+
+task integrationTest(type: Test) {
+    testClassesDir = sourceSets.integrationTest.output.classesDir
+    classpath = sourceSets.integrationTest.runtimeClasspath
+}
+
+task acceptanceTest(type: Test) {
+    testClassesDir = sourceSets.acceptanceTest.output.classesDir
+    classpath = sourceSets.acceptanceTest.runtimeClasspath
+}
+
+check.dependsOn integrationTest, acceptanceTest
