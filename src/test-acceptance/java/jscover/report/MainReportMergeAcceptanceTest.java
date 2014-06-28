@@ -340,41 +340,48 @@ library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
  */
 
-package jscover.report.coberturaxml;
+package jscover.report;
 
-import jscover.report.Coverable;
-import jscover.report.SummaryData;
+import jscover.util.IoUtils;
+import org.apache.commons.io.FileUtils;
+import org.junit.Before;
+import org.junit.Test;
 
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
 
-public class CoberturaData extends SummaryData {
-    private Map<String, Set<? extends Coverable>> packageMap = new HashMap<String, Set<? extends Coverable>>();
-    private Collection<? extends Coverable> files;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.*;
 
-    @SuppressWarnings(value = "unchecked")
-    public CoberturaData(Collection<? extends Coverable> files) {
-        super(files);
-        this.files = files;
-        for (Coverable file : files) {
-            String path = getPackage(file.getUri());
-            if (!packageMap.containsKey(path)) {
-                packageMap.put(path, new HashSet<Coverable>());
-            }
-            ((Set<Coverable>)packageMap.get(path)).add(file);
-        }
+public class MainReportMergeAcceptanceTest {
+    private IoUtils ioUtils = IoUtils.getInstance();
+    private File reportDir1 = new File("target/report1");
+    private File reportDir2 = new File("target/report2");
+    private File reportDir12 = new File("target/report12");
+    private String data1 = ioUtils.loadFromClassPath("/jscover/report/jscoverage-select-1.json");
+    private String data2 = ioUtils.loadFromClassPath("/jscover/report/jscoverage-select-3.json");
+    private String[] args = new String[]{
+            "--merge",
+            "target/report1",
+            "target/report2",
+            "target/report12"
+    };
+
+    @Before
+    public void setUp() throws IOException {
+        FileUtils.deleteDirectory(reportDir1);
+        FileUtils.deleteDirectory(reportDir2);
+        FileUtils.deleteDirectory(reportDir12);
+        ioUtils.copy(data1, new File(reportDir1, "jscoverage.json"));
+        ioUtils.copy(data2, new File(reportDir2, "jscoverage.json"));
     }
 
-    protected String getPackage(String uri) {
-        if (uri == null || !uri.contains("/"))
-            return "";
-        return uri.substring(0, uri.lastIndexOf("/"));
+    @Test
+    public void shouldMergeDataWithoutSource() throws IOException {
+        String expected = ioUtils.loadFromClassPath("/jscover/report/jscoverage-select-1-3.json");
+        Main.main(args);
+        String merged = ioUtils.loadFromFileSystem(new File(reportDir12, "jscoverage.json"));
+        assertThat(merged, equalTo(expected));
     }
 
-    public Collection<? extends Coverable> getFiles() {
-        return files;
-    }
-
-    public Map<String, Set<? extends Coverable>> getPackageMap() {
-        return packageMap;
-    }
 }
